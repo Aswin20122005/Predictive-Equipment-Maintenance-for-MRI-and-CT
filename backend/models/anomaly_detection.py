@@ -100,11 +100,16 @@ def isolation_forest_scores(records: List[Dict], machine_type: str) -> Tuple[Lis
     df = pd.DataFrame(records)
     features = MACHINE_FEATURES.get(machine_type, MRI_FEATURES)
     available = [f for f in features if f in df.columns]
-    X = df[available].apply(pd.to_numeric, errors='coerce').fillna(0).values
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
+    X = df[available].apply(pd.to_numeric, errors='coerce')
+    # Fill gaps with the column median rather than 0, which would look like a sensor failure.
+    X = X.fillna(X.median()).fillna(0).values
+    n_ref = len(reference_records(records))
+    # Learn what "normal" looks like from the reference period, then score every day.
+    scaler = StandardScaler().fit(X[:n_ref])
     iso = IsolationForest(contamination=ISOLATION_CONTAMINATION, random_state=42, n_estimators=100)
-    preds = iso.fit_predict(X_scaled)
+    iso.fit(scaler.transform(X[:n_ref]))
+    X_scaled = scaler.transform(X)
+    preds = iso.predict(X_scaled)
     scores = iso.decision_function(X_scaled)
     return preds.tolist(), [round(float(s), 4) for s in scores]
 
