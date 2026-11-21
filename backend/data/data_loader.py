@@ -1,13 +1,21 @@
+import copy
 import json
 import os
+from functools import lru_cache
 from typing import Dict, List, Any
 
 DATA_DIR = os.path.join(os.path.dirname(__file__))
 
-def _load(filename: str) -> Any:
+@lru_cache(maxsize=None)
+def _read(filename: str) -> Any:
     path = os.path.join(DATA_DIR, filename)
-    with open(path, "r") as f:
+    with open(path, "r", encoding="utf-8") as f:
         return json.load(f)
+
+
+def _load(filename: str) -> Any:
+    """Parsed JSON, read from disk once. Returns a copy so callers can't modify the cache."""
+    return copy.deepcopy(_read(filename))
 
 def get_telemetry(machine_id: str) -> List[Dict]:
     """Returns 30-day telemetry list for MRI_01 or CT_01."""
