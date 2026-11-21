@@ -11,7 +11,12 @@ def test_reading_inside_normal_range_is_not_flagged():
 
 @pytest.mark.parametrize(
     "value, status, direction",
-    [(13.5, "WARNING", "LOW"), (12.0, "CRITICAL", "LOW"), (15.5, "WARNING", "HIGH"), (16.5, "CRITICAL", "HIGH")],
+    [
+        (13.5, "WARNING", "LOW"),
+        (12.0, "CRITICAL", "LOW"),
+        (15.5, "WARNING", "HIGH"),
+        (16.5, "CRITICAL", "HIGH"),
+    ],
 )
 def test_helium_pressure_limits(value, status, direction):
     [breach] = check_thresholds({"helium_pressure_psi": value}, "MRI")
