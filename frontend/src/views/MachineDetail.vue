@@ -49,6 +49,23 @@
               {{ f.parameter.replace(/_/g, ' ') }} (z={{ f.z_score }})
             </span>
           </div>
+          <div v-if="risk.threshold_breaches?.length" style="margin-top:16px;">
+            <p style="font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:var(--gray-400); font-weight:700; margin-bottom:8px;">
+              Outside manufacturer limits
+            </p>
+            <table style="width:100%; font-size:12px; border-collapse:collapse;">
+              <tr v-for="b in risk.threshold_breaches" :key="b.parameter" style="border-top:1px solid var(--gray-100);">
+                <td style="padding:6px 0; color:var(--gray-700);">{{ b.parameter.replace(/_/g, ' ') }}</td>
+                <td style="padding:6px 8px; font-weight:700;" :style="b.status === 'CRITICAL' ? 'color:#c0392b' : 'color:#b86e00'">
+                  {{ b.value }} {{ b.unit }}
+                </td>
+                <td style="padding:6px 0; color:var(--gray-400);">normal {{ b.normal_range[0] }}–{{ b.normal_range[1] }}</td>
+                <td style="padding:6px 0; text-align:right; font-weight:700;" :style="b.status === 'CRITICAL' ? 'color:#c0392b' : 'color:#b86e00'">
+                  {{ b.status }}
+                </td>
+              </tr>
+            </table>
+          </div>
         </div>
         <div v-if="risk?.cost_impact" class="card" style="padding:20px; min-width:190px;">
           <p style="font-size:10px; text-transform:uppercase; letter-spacing:0.08em; color:var(--gray-400); font-weight:700; margin-bottom:12px;">Cost Impact</p>
