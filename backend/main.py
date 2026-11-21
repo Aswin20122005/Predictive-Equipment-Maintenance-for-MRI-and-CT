@@ -112,7 +112,9 @@ def sensor_chart(machine_id: str, sensor: str):
     records = get_telemetry(machine_id)
     mt = MACHINE_TYPES[machine_id]
     baseline = compute_baseline(records, mt)
-    b = baseline.get(sensor, {})
+    if sensor not in baseline:
+        raise HTTPException(404, f"Unknown sensor for {mt}: {sensor}. Available: {', '.join(baseline)}")
+    b = baseline[sensor]
     data = []
     for r in records:
         val = r.get(sensor)
