@@ -36,3 +36,22 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npm run build
+
+  docker:
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build image
+        run: docker build -t mediwatch:ci .
+      - name: Run and smoke-test
+        run: |
+          docker run -d --name app -p 8000:8000 mediwatch:ci
+          for i in $(seq 1 20); do curl -fs http://localhost:8000/api/health && break; sleep 2; done
+          curl -fs http://localhost:8000/ | grep -qi '<div id="app"'
+          curl -fs http://localhost:8000/api/dashboard | grep -q MRI_01
+          curl -fs -X POST http://localhost:8000/api/agent/run/MRI_01 | grep -q ticket_id
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8000/api/risk/NOPE)" = 404
+      - name: Logs on failure
+        if: failure()
+        run: docker logs app
