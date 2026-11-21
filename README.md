@@ -60,7 +60,14 @@ npm install
 npm run dev          # http://localhost:5173 (proxies /api to :8000)
 ```
 
-### Production (single server)
+### Docker (single container)
+
+```bash
+docker build -t mediwatch .
+docker run -p 8000:8000 mediwatch      # dashboard + API on http://localhost:8000
+```
+
+### Production (single server, without Docker)
 
 ```bash
 cd frontend && npm run build && cd ..
@@ -111,6 +118,8 @@ pytest                      # 39 tests: thresholds, anomalies, risk, agent, API
 flake8 backend tests
 black --check backend tests
 ```
+
+CI runs the backend tests and linters, builds the dashboard, then builds the Docker image and smoke-tests it (dashboard, API, an agent run, and a 404).
 
 ## Project structure
 
