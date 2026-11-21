@@ -79,7 +79,7 @@ def classify_risk(
             "net_saving_inr":            int(cost_row.get("net_saving_inr") or 0),
         }
 
-    reasoning = _build_reasoning(latest_record, tier, days, anomaly_summary)
+    reasoning = _build_reasoning(latest_record, tier, days, anomaly_summary, breaches)
 
     return {
         "risk_tier":            tier,
@@ -103,7 +103,7 @@ def classify_risk(
         "assessed_at":          datetime.now().isoformat(),
     }
 
-def _build_reasoning(record: Dict, tier: int, days: int, anomaly_summary: Dict) -> str:
+def _build_reasoning(record: Dict, tier: int, days: int, anomaly_summary: Dict, breaches=()) -> str:
     parts = []
     if tier == 0:
         parts.append("All sensor parameters within baseline operating range.")
@@ -151,6 +151,14 @@ def _build_reasoning(record: Dict, tier: int, days: int, anomaly_summary: Dict) 
                 parts.append(f"Detector calibration drift score {d:.3f} (critical max 1.5).")
         except Exception:
             pass
+
+    critical = [b for b in breaches if b["status"] == "CRITICAL"]
+    if critical:
+        names = ", ".join(f"{b['parameter']} = {b['value']} (limit {b['critical_limit']})" for b in critical)
+        parts.append(f"Past critical limit: {names}.")
+    warnings_ = len(breaches) - len(critical)
+    if warnings_:
+        parts.append(f"{warnings_} other reading(s) outside the normal range.")
 
     n_anom = anomaly_summary.get("total_anomaly_days_last7d", 0)
     if n_anom > 0:
