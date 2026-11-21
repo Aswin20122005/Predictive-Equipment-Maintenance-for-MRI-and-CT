@@ -41,6 +41,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+def require_machine(machine_id: str) -> str:
+    """Raise 404 for machine ids that aren't in the dataset."""
+    if machine_id not in MACHINE_IDS:
+        raise HTTPException(404, f"Unknown machine: {machine_id}. Known machines: {', '.join(MACHINE_IDS)}")
+    return machine_id
+
+
 def _resolve_tier_key(risk_label: str) -> str:
     label = str(risk_label)
     if "Critical" in label:
@@ -89,22 +96,19 @@ def dashboard():
 
 @app.get("/api/telemetry/{machine_id}")
 def get_telemetry_endpoint(machine_id: str, days: int = Query(30, ge=1, le=365)):
-    if machine_id not in MACHINE_IDS:
-        raise HTTPException(404, f"Unknown machine: {machine_id}")
+    require_machine(machine_id)
     records = get_telemetry(machine_id)[-days:]
     return ok({"machine_id": machine_id, "records": records, "count": len(records)})
 
 
 @app.get("/api/telemetry/{machine_id}/latest")
 def latest_telemetry(machine_id: str):
-    if machine_id not in MACHINE_IDS:
-        raise HTTPException(404, f"Unknown machine: {machine_id}")
+    require_machine(machine_id)
     return ok(get_telemetry(machine_id)[-1])
 
 @app.get("/api/chart/{machine_id}/{sensor}")
 def sensor_chart(machine_id: str, sensor: str):
-    if machine_id not in MACHINE_IDS:
-        raise HTTPException(404)
+    require_machine(machine_id)
     records = get_telemetry(machine_id)
     mt = MACHINE_TYPES[machine_id]
     baseline = compute_baseline(records, mt)
@@ -127,8 +131,7 @@ def sensor_chart(machine_id: str, sensor: str):
 
 @app.get("/api/anomalies/{machine_id}")
 def anomalies(machine_id: str):
-    if machine_id not in MACHINE_IDS:
-        raise HTTPException(404)
+    require_machine(machine_id)
     records = get_telemetry(machine_id)
     mt = MACHINE_TYPES[machine_id]
     report = full_anomaly_report(records, mt)
@@ -136,8 +139,7 @@ def anomalies(machine_id: str):
 
 @app.get("/api/risk/{machine_id}")
 def risk_endpoint(machine_id: str):
-    if machine_id not in MACHINE_IDS:
-        raise HTTPException(404)
+    require_machine(machine_id)
     return ok(tool_classify_risk(machine_id))
 
 @app.get("/api/schedule")
@@ -146,6 +148,7 @@ def schedule_all():
 
 @app.get("/api/schedule/{machine_id}")
 def schedule_machine(machine_id: str):
+    require_machine(machine_id)
     return ok({"machine_id": machine_id, "appointments": get_scan_schedule(machine_id)})
 
 @app.get("/api/vendors")
@@ -158,12 +161,12 @@ def cost_all():
 
 @app.get("/api/cost/{machine_id}")
 def cost_machine(machine_id: str):
+    require_machine(machine_id)
     return ok({"machine_id": machine_id, "cost_impact": get_cost_impact(machine_id)})
 
 @app.post("/api/agent/run/{machine_id}")
 def agent_run(machine_id: str):
-    if machine_id not in MACHINE_IDS:
-        raise HTTPException(404)
+    require_machine(machine_id)
     return ok(run_agent(machine_id))
 
 @app.post("/api/agent/run-all")
