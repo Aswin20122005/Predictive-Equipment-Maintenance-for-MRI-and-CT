@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Dict, List, Any
+from typing import Dict, List
 
 from backend.data.data_loader import (
     get_telemetry, get_vendors, get_scan_schedule, get_cost_impact, MACHINE_IDS, MACHINE_TYPES

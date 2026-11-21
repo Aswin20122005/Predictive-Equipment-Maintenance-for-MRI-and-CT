@@ -21,8 +21,7 @@ def ok(data) -> JSONResponse:
     return JSONResponse(content=sanitize(data))
 
 from backend.data.data_loader import (
-    get_telemetry, get_all_telemetry, get_baselines, get_baselines_by_machine,
-    get_vendors, get_scan_schedule, get_cost_impact, MACHINE_IDS, MACHINE_TYPES
+    get_telemetry, get_vendors, get_scan_schedule, get_cost_impact, MACHINE_IDS, MACHINE_TYPES
 )
 from backend.models.anomaly_detection import full_anomaly_report, compute_baseline
 from backend.models.risk_classifier import classify_risk
