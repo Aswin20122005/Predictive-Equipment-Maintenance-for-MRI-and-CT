@@ -3,8 +3,6 @@ import pandas as pd
 from typing import Dict, List, Any, Tuple
 from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
-import warnings
-warnings.filterwarnings("ignore")
 
 MRI_FEATURES = [
     "helium_pressure_psi", "cryogen_level_percent",
@@ -104,7 +102,7 @@ def detect_trend(records: List[Dict], param: str, window: int = 7) -> Dict:
         if v is not None:
             try:
                 vals.append(float(v))
-            except:
+            except (TypeError, ValueError):
                 pass
     if len(vals) < 3:
         return {"slope": 0.0, "direction": "STABLE"}
