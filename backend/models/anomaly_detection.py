@@ -26,9 +26,23 @@ Z_THRESHOLD = 2.0
 ISOLATION_CONTAMINATION = 0.15
 
 
+RECENT_DAYS = 7  # the window being assessed; kept out of the baseline
+
+
+def reference_records(records: List[Dict], recent_days: int = RECENT_DAYS) -> List[Dict]:
+    """Records used as the 'normal' reference: everything before the last week.
+
+    If the baseline includes the days being judged, a developing fault pulls the mean
+    towards itself and inflates the std, so the fault stops looking unusual.
+    """
+    if len(records) > 2 * recent_days:
+        return records[:-recent_days]
+    return records
+
+
 def compute_baseline(records: List[Dict], machine_type: str) -> Dict[str, Dict]:
-    """30-day baseline statistics per sensor."""
-    df = pd.DataFrame(records)
+    """Baseline statistics per sensor, from the reference period (all but the last week)."""
+    df = pd.DataFrame(reference_records(records))
     features = MACHINE_FEATURES.get(machine_type, MRI_FEATURES)
     available = [f for f in features if f in df.columns]
     baseline = {}
