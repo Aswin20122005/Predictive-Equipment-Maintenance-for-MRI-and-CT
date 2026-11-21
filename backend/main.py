@@ -1,6 +1,6 @@
 import sys, os, math, json
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
@@ -88,11 +88,11 @@ def dashboard():
     return ok({"machines": machines, "generated_at": datetime.now().isoformat()})
 
 @app.get("/api/telemetry/{machine_id}")
-def get_telemetry_endpoint(machine_id: str, days: int = 30):
+def get_telemetry_endpoint(machine_id: str, days: int = Query(30, ge=1, le=365)):
     if machine_id not in MACHINE_IDS:
         raise HTTPException(404, f"Unknown machine: {machine_id}")
-    records = get_telemetry(machine_id)
-    return ok({"machine_id": machine_id, "records": records[-days:], "count": min(days, len(records))})
+    records = get_telemetry(machine_id)[-days:]
+    return ok({"machine_id": machine_id, "records": records, "count": len(records)})
 
 
 @app.get("/api/telemetry/{machine_id}/latest")
