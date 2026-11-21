@@ -197,6 +197,13 @@ def run_agent(machine_id: str) -> Dict:
 def run_all_machines() -> Dict[str, Dict]:
     return {mid: run_agent(mid) for mid in MACHINE_IDS}
 
+def reset_agent_state() -> None:
+    """Clear tickets, reschedules and notifications (for demos and tests)."""
+    _vendor_tickets.clear()
+    _reschedule_log.clear()
+    _notification_log.clear()
+
+
 def get_agent_logs() -> Dict:
     return {
         "vendor_tickets":  _vendor_tickets,

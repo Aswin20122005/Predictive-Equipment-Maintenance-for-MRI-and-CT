@@ -26,7 +26,7 @@ from backend.data.data_loader import (
 )
 from backend.models.anomaly_detection import full_anomaly_report, compute_baseline
 from backend.models.risk_classifier import classify_risk
-from backend.agent.agent import run_agent, run_all_machines, get_agent_logs, tool_classify_risk
+from backend.agent.agent import run_agent, run_all_machines, get_agent_logs, reset_agent_state, tool_classify_risk
 
 app = FastAPI(
     title="MediWatch — Predictive Equipment Maintenance API",
@@ -177,6 +177,13 @@ def agent_run_all():
 
 @app.get("/api/agent/logs")
 def agent_logs():
+    return ok(get_agent_logs())
+
+
+@app.delete("/api/agent/logs")
+def clear_agent_logs():
+    """Reset the agent's tickets, reschedules and notifications (useful between demos)."""
+    reset_agent_state()
     return ok(get_agent_logs())
 
 _frontend_dist = os.path.join(os.path.dirname(__file__), "..", "frontend", "dist")
