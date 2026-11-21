@@ -4,24 +4,24 @@ from datetime import datetime
 from backend.models.thresholds import check_thresholds, threshold_tier
 
 RISK_TIERS = {
-    0: {"code": "NORMAL",               "label": "Normal",               "emoji": "🟢", "color": "#34c759"},
-    1: {"code": "MONITOR",              "label": "Monitor",              "emoji": "🟡", "color": "#ff9f0a"},
+    0: {"code": "NORMAL", "label": "Normal", "emoji": "🟢", "color": "#34c759"},
+    1: {"code": "MONITOR", "label": "Monitor", "emoji": "🟡", "color": "#ff9f0a"},
     2: {"code": "SCHEDULE_MAINTENANCE", "label": "Schedule Maintenance", "emoji": "🔴", "color": "#ff3b30"},
     # FIX: was "#6b7280" (gray) — CRITICAL must be visually distinct (purple)
-    3: {"code": "CRITICAL",             "label": "Critical",             "emoji": "⚫", "color": "#af52de"},
+    3: {"code": "CRITICAL", "label": "Critical", "emoji": "⚫", "color": "#af52de"},
 }
 
 FAILURE_DESCRIPTIONS = {
-    "cryogen_leak":      "Cryogen Leak / Helium Quench Risk",
-    "gradient_fault":    "Gradient Coil Failure",
-    "rf_fault":          "RF Coil Degradation",
+    "cryogen_leak": "Cryogen Leak / Helium Quench Risk",
+    "gradient_fault": "Gradient Coil Failure",
+    "rf_fault": "RF Coil Degradation",
     "calibration_drift": "Detector Calibration Drift",
-    "tube_burnout":      "X-Ray Tube Burnout",
-    "rotation_fault":    "Gantry Rotation Fault",
-    "thermal_fault":     "Thermal / Cooling System Failure",
-    "electrical_fault":  "Electrical Fault",
-    "None":              "No Failure Predicted",
-    None:                "No Failure Predicted",
+    "tube_burnout": "X-Ray Tube Burnout",
+    "rotation_fault": "Gantry Rotation Fault",
+    "thermal_fault": "Thermal / Cooling System Failure",
+    "electrical_fault": "Electrical Fault",
+    "None": "No Failure Predicted",
+    None: "No Failure Predicted",
 }
 
 
@@ -71,37 +71,38 @@ def classify_risk(
     cost_impact = None
     if cost_row:
         cost_impact = {
-            "preventive_cost_inr":       int(cost_row.get("preventive_cost_inr") or 0),
+            "preventive_cost_inr": int(cost_row.get("preventive_cost_inr") or 0),
             "emergency_repair_cost_inr": int(cost_row.get("emergency_repair_cost_inr") or 0),
-            "lost_revenue_per_day_inr":  int(cost_row.get("lost_revenue_per_day_inr") or 0),
-            "downtime_days":             float(cost_row.get("downtime_days") or 0),
-            "total_breakdown_cost_inr":  int(cost_row.get("total_breakdown_cost_inr") or 0),
-            "net_saving_inr":            int(cost_row.get("net_saving_inr") or 0),
+            "lost_revenue_per_day_inr": int(cost_row.get("lost_revenue_per_day_inr") or 0),
+            "downtime_days": float(cost_row.get("downtime_days") or 0),
+            "total_breakdown_cost_inr": int(cost_row.get("total_breakdown_cost_inr") or 0),
+            "net_saving_inr": int(cost_row.get("net_saving_inr") or 0),
         }
 
     reasoning = _build_reasoning(latest_record, tier, days, anomaly_summary, breaches)
 
     return {
-        "risk_tier":            tier,
-        "dataset_tier":         dataset_tier,
-        "sensor_tier":          sensor_tier,
-        "threshold_breaches":   breaches,
-        "risk_code":            tier_info["code"],
-        "risk_label":           tier_info["label"],
-        "risk_emoji":           tier_info["emoji"],
-        "risk_color":           tier_info["color"],
-        "confidence":           round(confidence, 2),
-        "failure_type":         failure_type,
-        "failure_description":  failure_desc,
-        "days_to_failure":      days,
-        "reasoning":            reasoning,
-        "requires_action":      tier >= 2,
-        "requires_suspension":  tier >= 3,
-        "cost_impact":          cost_impact,
-        "flagged_parameters":   anomaly_summary.get("latest_flags", []),
+        "risk_tier": tier,
+        "dataset_tier": dataset_tier,
+        "sensor_tier": sensor_tier,
+        "threshold_breaches": breaches,
+        "risk_code": tier_info["code"],
+        "risk_label": tier_info["label"],
+        "risk_emoji": tier_info["emoji"],
+        "risk_color": tier_info["color"],
+        "confidence": round(confidence, 2),
+        "failure_type": failure_type,
+        "failure_description": failure_desc,
+        "days_to_failure": days,
+        "reasoning": reasoning,
+        "requires_action": tier >= 2,
+        "requires_suspension": tier >= 3,
+        "cost_impact": cost_impact,
+        "flagged_parameters": anomaly_summary.get("latest_flags", []),
         "anomaly_count_last7d": anomaly_summary.get("total_anomaly_days_last7d", 0),
-        "assessed_at":          datetime.now().isoformat(),
+        "assessed_at": datetime.now().isoformat(),
     }
+
 
 def _build_reasoning(record: Dict, tier: int, days: int, anomaly_summary: Dict, breaches=()) -> str:
     parts = []

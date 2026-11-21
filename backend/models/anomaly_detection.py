@@ -5,18 +5,30 @@ from sklearn.ensemble import IsolationForest
 from sklearn.preprocessing import StandardScaler
 
 MRI_FEATURES = [
-    "helium_pressure_psi", "cryogen_level_percent",
-    "gradient_coil_temp_celsius", "gradient_coil_performance_score",
-    "rf_coil_snr_db", "internal_temp_celsius", "vibration_amplitude_mm_s",
-    "error_code_freq_7d", "scan_volume_per_day", "power_consumption_kwh",
+    "helium_pressure_psi",
+    "cryogen_level_percent",
+    "gradient_coil_temp_celsius",
+    "gradient_coil_performance_score",
+    "rf_coil_snr_db",
+    "internal_temp_celsius",
+    "vibration_amplitude_mm_s",
+    "error_code_freq_7d",
+    "scan_volume_per_day",
+    "power_consumption_kwh",
     "cooling_system_temp_celsius",
 ]
 
 CT_FEATURES = [
-    "xray_tube_current_ma", "xray_tube_voltage_kv", "tube_heat_unit_percent",
-    "detector_calibration_drift_score", "rotation_speed_rpm",
-    "internal_temp_celsius", "vibration_amplitude_mm_s",
-    "error_code_freq_7d", "scan_volume_per_day", "power_consumption_kwh",
+    "xray_tube_current_ma",
+    "xray_tube_voltage_kv",
+    "tube_heat_unit_percent",
+    "detector_calibration_drift_score",
+    "rotation_speed_rpm",
+    "internal_temp_celsius",
+    "vibration_amplitude_mm_s",
+    "error_code_freq_7d",
+    "scan_volume_per_day",
+    "power_consumption_kwh",
     "cooling_system_temp_celsius",
 ]
 
@@ -47,7 +59,7 @@ def compute_baseline(records: List[Dict], machine_type: str) -> Dict[str, Dict]:
     available = [f for f in features if f in df.columns]
     baseline = {}
     for feat in available:
-        s = pd.to_numeric(df[feat], errors='coerce').dropna()
+        s = pd.to_numeric(df[feat], errors="coerce").dropna()
         if len(s) == 0:
             continue
         baseline[feat] = {
@@ -80,19 +92,23 @@ def zscore_anomaly_flags(records: List[Dict], baseline: Dict) -> List[Dict]:
             if z > Z_THRESHOLD:
                 direction = "HIGH" if val > stats["mean"] else "LOW"
                 severity = "CRITICAL" if z > 4.0 else "WARNING" if z > 3.0 else "NOTICE"
-                flags.append({
-                    "parameter": param,
-                    "value": round(val, 4),
-                    "baseline_mean": round(stats["mean"], 4),
-                    "z_score": round(z, 2),
-                    "direction": direction,
-                    "severity": severity,
-                })
-        result.append({
-            "date": rec.get("date", ""),
-            "flags": flags,
-            "anomaly_count": len(flags),
-        })
+                flags.append(
+                    {
+                        "parameter": param,
+                        "value": round(val, 4),
+                        "baseline_mean": round(stats["mean"], 4),
+                        "z_score": round(z, 2),
+                        "direction": direction,
+                        "severity": severity,
+                    }
+                )
+        result.append(
+            {
+                "date": rec.get("date", ""),
+                "flags": flags,
+                "anomaly_count": len(flags),
+            }
+        )
     return result
 
 
@@ -100,7 +116,7 @@ def isolation_forest_scores(records: List[Dict], machine_type: str) -> Tuple[Lis
     df = pd.DataFrame(records)
     features = MACHINE_FEATURES.get(machine_type, MRI_FEATURES)
     available = [f for f in features if f in df.columns]
-    X = df[available].apply(pd.to_numeric, errors='coerce')
+    X = df[available].apply(pd.to_numeric, errors="coerce")
     # Fill gaps with the column median rather than 0, which would look like a sensor failure.
     X = X.fillna(X.median()).fillna(0).values
     n_ref = len(reference_records(records))
@@ -143,21 +159,33 @@ def full_anomaly_report(records: List[Dict], machine_type: str) -> Dict:
 
     # Trends on critical params
     critical_params = {
-        "MRI": ["helium_pressure_psi", "cryogen_level_percent", "gradient_coil_performance_score", "error_code_freq_7d"],
-        "CT":  ["tube_heat_unit_percent", "detector_calibration_drift_score", "error_code_freq_7d", "xray_tube_current_ma"],
+        "MRI": [
+            "helium_pressure_psi",
+            "cryogen_level_percent",
+            "gradient_coil_performance_score",
+            "error_code_freq_7d",
+        ],
+        "CT": [
+            "tube_heat_unit_percent",
+            "detector_calibration_drift_score",
+            "error_code_freq_7d",
+            "xray_tube_current_ma",
+        ],
     }
     trends = {p: detect_trend(records, p) for p in critical_params.get(machine_type, [])}
 
     # Chart-friendly merge
     chart_data = []
     for i, rec in enumerate(records):
-        chart_data.append({
-            "date": rec.get("date", ""),
-            "anomaly_count": zscore_flags[i]["anomaly_count"],
-            "flags": zscore_flags[i]["flags"],
-            "iso_anomaly": iso_preds[i] == -1,
-            "iso_score": iso_scores[i],
-        })
+        chart_data.append(
+            {
+                "date": rec.get("date", ""),
+                "anomaly_count": zscore_flags[i]["anomaly_count"],
+                "flags": zscore_flags[i]["flags"],
+                "iso_anomaly": iso_preds[i] == -1,
+                "iso_score": iso_scores[i],
+            }
+        )
 
     latest = zscore_flags[-1] if zscore_flags else {}
     return {
@@ -169,5 +197,5 @@ def full_anomaly_report(records: List[Dict], machine_type: str) -> Dict:
             "latest_anomaly_count": latest.get("anomaly_count", 0),
             "total_anomaly_days_last7d": sum(1 for d in chart_data[-7:] if d["anomaly_count"] > 0),
             "iso_anomaly_days_last7d": sum(1 for d in chart_data[-7:] if d["iso_anomaly"]),
-        }
+        },
     }

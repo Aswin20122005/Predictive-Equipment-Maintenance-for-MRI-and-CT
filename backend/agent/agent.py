@@ -2,14 +2,20 @@ from datetime import datetime, timedelta
 from typing import Dict, List
 
 from backend.data.data_loader import (
-    get_telemetry, get_vendors, get_scan_schedule, get_cost_impact, MACHINE_IDS, MACHINE_TYPES
+    get_telemetry,
+    get_vendors,
+    get_scan_schedule,
+    get_cost_impact,
+    MACHINE_IDS,
+    MACHINE_TYPES,
 )
 from backend.models.anomaly_detection import full_anomaly_report
 from backend.models.risk_classifier import classify_risk
 
-_vendor_tickets:   List[Dict] = []
-_reschedule_log:   List[Dict] = []
+_vendor_tickets: List[Dict] = []
+_reschedule_log: List[Dict] = []
 _notification_log: List[Dict] = []
+
 
 def tool_classify_risk(machine_id: str) -> Dict:
     """classify_failure_risk tool."""
@@ -36,6 +42,7 @@ def tool_classify_risk(machine_id: str) -> Dict:
     risk["machine_type"] = machine_type
     return risk
 
+
 def open_ticket_for(machine_id: str):
     """The machine's open service ticket, if one already exists."""
     return next((t for t in _vendor_tickets if t["machine_id"] == machine_id and t["status"] == "OPEN"), None)
@@ -51,63 +58,73 @@ def tool_contact_vendor(machine_id: str, fault_summary: str, urgency: str, prefe
     eligible = [v for v in vendors if v.get("vendor_id")]
 
     if machine_type == "MRI":
-        vendor = next((v for v in eligible if "Siemens" in str(v.get("vendor_name", ""))), eligible[0] if eligible else {})
+        vendor = next(
+            (v for v in eligible if "Siemens" in str(v.get("vendor_name", ""))),
+            eligible[0] if eligible else {},
+        )
     else:
-        vendor = next((v for v in eligible if "GE" in str(v.get("vendor_name", ""))), eligible[0] if eligible else {})
+        vendor = next(
+            (v for v in eligible if "GE" in str(v.get("vendor_name", ""))), eligible[0] if eligible else {}
+        )
 
     ticket_id = f"TKT-{machine_id}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
     record = {
-        "ticket_id":            ticket_id,
-        "machine_id":           machine_id,
-        "vendor_id":            vendor.get("vendor_id"),
-        "vendor_name":          vendor.get("vendor_name"),
-        "contact_person":       vendor.get("contact_person"),
-        "phone":                vendor.get("phone"),
-        "email":                vendor.get("email"),
-        "fault_summary":        fault_summary,
-        "urgency":              urgency,
-        "preferred_window":     preferred_window,
-        "response_time_hours":  vendor.get("response_time_hours"),
-        "hourly_rate_inr":      vendor.get("hourly_rate_inr"),
-        "status":               "OPEN",
-        "created_at":           datetime.now().isoformat(),
+        "ticket_id": ticket_id,
+        "machine_id": machine_id,
+        "vendor_id": vendor.get("vendor_id"),
+        "vendor_name": vendor.get("vendor_name"),
+        "contact_person": vendor.get("contact_person"),
+        "phone": vendor.get("phone"),
+        "email": vendor.get("email"),
+        "fault_summary": fault_summary,
+        "urgency": urgency,
+        "preferred_window": preferred_window,
+        "response_time_hours": vendor.get("response_time_hours"),
+        "hourly_rate_inr": vendor.get("hourly_rate_inr"),
+        "status": "OPEN",
+        "created_at": datetime.now().isoformat(),
     }
     _vendor_tickets.append(record)
     return {"success": True, "ticket": record, "existing": False}
 
-def tool_reschedule(appointment_id: str, new_slot: str, reason: str = "Scheduled maintenance overlap") -> Dict:
+
+def tool_reschedule(
+    appointment_id: str, new_slot: str, reason: str = "Scheduled maintenance overlap"
+) -> Dict:
     """reschedule_appointment tool."""
     record = {
-        "appointment_id":  appointment_id,
-        "new_slot":        new_slot,
-        "reason":          reason,
-        "status":          "RESCHEDULED",
+        "appointment_id": appointment_id,
+        "new_slot": new_slot,
+        "reason": reason,
+        "status": "RESCHEDULED",
         "patient_notified": True,
-        "rescheduled_at":  datetime.now().isoformat(),
+        "rescheduled_at": datetime.now().isoformat(),
     }
     _reschedule_log.append(record)
     return {"success": True, "record": record}
+
 
 def tool_notify_team(machine_id: str, risk: Dict, recommended_action: str) -> Dict:
     """notify_engineering_team tool."""
     notif_id = f"NOTIF-{machine_id}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
     cost = risk.get("cost_impact") or {}
     record = {
-        "notification_id":    notif_id,
-        "machine_id":         machine_id,
-        "risk_tier":          risk.get("risk_label"),
-        "failure_type":       risk.get("failure_description"),
-        "days_to_failure":    risk.get("days_to_failure"),
-        "confidence":         risk.get("confidence"),
+        "notification_id": notif_id,
+        "machine_id": machine_id,
+        "risk_tier": risk.get("risk_label"),
+        "failure_type": risk.get("failure_description"),
+        "days_to_failure": risk.get("days_to_failure"),
+        "confidence": risk.get("confidence"),
         "recommended_action": recommended_action,
-        "preventive_cost_inr":  cost.get("preventive_cost_inr"),
-        "breakdown_cost_inr":   cost.get("total_breakdown_cost_inr"),
-        "net_saving_inr":       cost.get("net_saving_inr"),
-        "recipients":         ["radiology.head@hospital.in", "engineering@hospital.in"],
-        "sent_at":            datetime.now().isoformat(),
+        "preventive_cost_inr": cost.get("preventive_cost_inr"),
+        "breakdown_cost_inr": cost.get("total_breakdown_cost_inr"),
+        "net_saving_inr": cost.get("net_saving_inr"),
+        "recipients": ["radiology.head@hospital.in", "engineering@hospital.in"],
+        "sent_at": datetime.now().isoformat(),
     }
     _notification_log.append(record)
     return {"success": True, "notification": record}
+
 
 def run_agent(machine_id: str) -> Dict:
     """Full agent pipeline for one machine."""
@@ -116,20 +133,23 @@ def run_agent(machine_id: str) -> Dict:
 
     risk = tool_classify_risk(machine_id)
     tier = risk.get("risk_tier", 0)
-    actions.append(f"[{ts()}] Risk assessed for {machine_id}: {risk['risk_emoji']} {risk['risk_label']} — {risk['failure_description']}")
+    actions.append(
+        f"[{ts()}] Risk assessed for {machine_id}: {risk['risk_emoji']} {risk['risk_label']} — {risk['failure_description']}"
+    )
 
     vendor_result = None
     reschedule_results = []
     notification_result = None
 
-    if tier >= 2:  
+    if tier >= 2:
         schedule = get_scan_schedule(machine_id)
         already_moved = {r["appointment_id"] for r in _reschedule_log}
         affected = [
-            s for s in schedule
-            if not s.get("rescheduled") and s.get("appointment_id") not in already_moved
+            s for s in schedule if not s.get("rescheduled") and s.get("appointment_id") not in already_moved
         ]
-        actions.append(f"[{ts()}] Retrieved {len(schedule)} appointments, {len(affected)} potentially affected")
+        actions.append(
+            f"[{ts()}] Retrieved {len(schedule)} appointments, {len(affected)} potentially affected"
+        )
         urgency = "CRITICAL" if tier >= 3 else "HIGH"
         days = risk.get("days_to_failure", "unknown")
         fault_summary = (
@@ -146,10 +166,17 @@ def run_agent(machine_id: str) -> Dict:
         vendor_name = vendor_result["ticket"]["vendor_name"]
         if vendor_result["existing"]:
             # This fault is already being handled: don't move more patients or re-alert.
-            actions.append(f"[{ts()}] Service ticket {ticket_id} with {vendor_name} is already open — no new actions")
+            actions.append(
+                f"[{ts()}] Service ticket {ticket_id} with {vendor_name} is already open — no new actions"
+            )
             return {
-                "machine_id": machine_id, "risk": risk, "actions": actions, "vendor_ticket": vendor_result,
-                "reschedules": [], "notification": None, "completed": True,
+                "machine_id": machine_id,
+                "risk": risk,
+                "actions": actions,
+                "vendor_ticket": vendor_result,
+                "reschedules": [],
+                "notification": None,
+                "completed": True,
             }
         actions.append(f"[{ts()}] Service ticket {ticket_id} created with {vendor_name}")
         for appt in affected[:3]:
@@ -169,35 +196,39 @@ def run_agent(machine_id: str) -> Dict:
             actions.append(f"[{ts()}] Rescheduled {len(reschedule_results)} patient appointment(s)")
 
         cost = risk.get("cost_impact") or {}
-        prev_cost  = cost.get("preventive_cost_inr", 0)
-        breakdown  = cost.get("total_breakdown_cost_inr", 0)
-        saving     = cost.get("net_saving_inr", 0)
+        prev_cost = cost.get("preventive_cost_inr", 0)
+        breakdown = cost.get("total_breakdown_cost_inr", 0)
+        saving = cost.get("net_saving_inr", 0)
         recommended = (
             f"⚠️ SUSPEND MACHINE — Emergency repair required. "
             f"Failure type: {risk['failure_description']}. "
             f"Preventive: ₹{prev_cost:,} vs Breakdown: ₹{breakdown:,} (Save ₹{saving:,})."
-            if tier >= 3 else
-            f"Schedule preventive maintenance within {days} days. "
+            if tier >= 3
+            else f"Schedule preventive maintenance within {days} days. "
             f"Preventive: ₹{prev_cost:,} vs Breakdown: ₹{breakdown:,} (Save ₹{saving:,})."
         )
         notification_result = tool_notify_team(machine_id, risk, recommended)
         actions.append(f"[{ts()}] Notifications sent to Radiology Head & Engineering team")
 
-    else:  
-        actions.append(f"[{ts()}] {machine_id} status: {risk['risk_emoji']} — No immediate action required. Monitoring continues.")
+    else:
+        actions.append(
+            f"[{ts()}] {machine_id} status: {risk['risk_emoji']} — No immediate action required. Monitoring continues."
+        )
 
     return {
-        "machine_id":    machine_id,
-        "risk":          risk,
-        "actions":       actions,
+        "machine_id": machine_id,
+        "risk": risk,
+        "actions": actions,
         "vendor_ticket": vendor_result,
-        "reschedules":   reschedule_results,
-        "notification":  notification_result,
-        "completed":     True,
+        "reschedules": reschedule_results,
+        "notification": notification_result,
+        "completed": True,
     }
+
 
 def run_all_machines() -> Dict[str, Dict]:
     return {mid: run_agent(mid) for mid in MACHINE_IDS}
+
 
 def reset_agent_state() -> None:
     """Clear tickets, reschedules and notifications (for demos and tests)."""
@@ -208,7 +239,7 @@ def reset_agent_state() -> None:
 
 def get_agent_logs() -> Dict:
     return {
-        "vendor_tickets":  _vendor_tickets,
-        "reschedules":     _reschedule_log,
-        "notifications":   _notification_log,
+        "vendor_tickets": _vendor_tickets,
+        "reschedules": _reschedule_log,
+        "notifications": _notification_log,
     }
