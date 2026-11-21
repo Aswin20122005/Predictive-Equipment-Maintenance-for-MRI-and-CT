@@ -147,9 +147,13 @@ def run_agent(machine_id: str) -> Dict:
         ticket_id = vendor_result["ticket"]["ticket_id"]
         vendor_name = vendor_result["ticket"]["vendor_name"]
         if vendor_result["existing"]:
-            actions.append(f"[{ts()}] Service ticket {ticket_id} with {vendor_name} is already open")
-        else:
-            actions.append(f"[{ts()}] Service ticket {ticket_id} created with {vendor_name}")
+            # This fault is already being handled: don't move more patients or re-alert.
+            actions.append(f"[{ts()}] Service ticket {ticket_id} with {vendor_name} is already open — no new actions")
+            return {
+                "machine_id": machine_id, "risk": risk, "actions": actions, "vendor_ticket": vendor_result,
+                "reschedules": [], "notification": None, "completed": True,
+            }
+        actions.append(f"[{ts()}] Service ticket {ticket_id} created with {vendor_name}")
         for appt in affected[:3]:
             existing_slot = appt.get("new_appointment_slot")
             if existing_slot:
