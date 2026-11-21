@@ -76,7 +76,7 @@ def dashboard():
         cost_rows = get_cost_impact(mid, tier_key)
         cost_row = cost_rows[0] if cost_rows else {}
 
-        risk = classify_risk(latest, anomaly["summary"], cost_row)
+        risk = classify_risk(latest, anomaly["summary"], cost_row, mt)
         schedule = get_scan_schedule(mid)
 
         machines.append({

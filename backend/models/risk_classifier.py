@@ -1,5 +1,7 @@
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Optional
 from datetime import datetime
+
+from backend.models.thresholds import check_thresholds, threshold_tier
 
 RISK_TIERS = {
     0: {"code": "NORMAL",               "label": "Normal",               "emoji": "🟢", "color": "#34c759"},
@@ -27,17 +29,27 @@ def classify_risk(
     latest_record: Dict,
     anomaly_summary: Dict,
     cost_row: Dict,
+    machine_type: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
-    Classify risk for a machine using the dataset's pre-labelled risk_tier,
-    enriched with live anomaly data and cost impact.
+    Classify risk for a machine.
+
+    Two signals are combined and the more severe one wins (a missed failure costs far
+    more than an unnecessary inspection):
+    - the dataset's pre-labelled risk_tier
+    - a tier computed from the live readings vs the manufacturer limits (thresholds.py)
     """
     tier_raw = latest_record.get("risk_tier", 0)
     try:
-        tier = int(float(tier_raw)) if tier_raw is not None else 0
+        dataset_tier = int(float(tier_raw)) if tier_raw is not None else 0
     except (TypeError, ValueError):
-        tier = 0
-    tier = max(0, min(3, tier))
+        dataset_tier = 0
+    dataset_tier = max(0, min(3, dataset_tier))
+
+    machine_type = machine_type or latest_record.get("machine_type")
+    breaches = check_thresholds(latest_record, machine_type) if machine_type else []
+    sensor_tier = threshold_tier(breaches)
+    tier = max(dataset_tier, sensor_tier)
 
     tier_info = RISK_TIERS[tier]
     failure_type = str(latest_record.get("predicted_failure_type") or "None")
@@ -71,6 +83,9 @@ def classify_risk(
 
     return {
         "risk_tier":            tier,
+        "dataset_tier":         dataset_tier,
+        "sensor_tier":          sensor_tier,
+        "threshold_breaches":   breaches,
         "risk_code":            tier_info["code"],
         "risk_label":           tier_info["label"],
         "risk_emoji":           tier_info["emoji"],

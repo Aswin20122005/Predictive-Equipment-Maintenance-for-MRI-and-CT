@@ -33,7 +33,7 @@ def tool_classify_risk(machine_id: str) -> Dict:
     cost_rows = get_cost_impact(machine_id, tier_key)
     cost_row = cost_rows[0] if cost_rows else {}
 
-    risk = classify_risk(latest, anomaly["summary"], cost_row)
+    risk = classify_risk(latest, anomaly["summary"], cost_row, machine_type)
     risk["machine_id"] = machine_id
     risk["machine_type"] = machine_type
     return risk
