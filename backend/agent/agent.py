@@ -38,8 +38,16 @@ def tool_classify_risk(machine_id: str) -> Dict:
     risk["machine_type"] = machine_type
     return risk
 
+def open_ticket_for(machine_id: str):
+    """The machine's open service ticket, if one already exists."""
+    return next((t for t in _vendor_tickets if t["machine_id"] == machine_id and t["status"] == "OPEN"), None)
+
+
 def tool_contact_vendor(machine_id: str, fault_summary: str, urgency: str, preferred_window: str) -> Dict:
-    """contact_service_vendor tool."""
+    """contact_service_vendor tool. Re-uses an open ticket instead of creating duplicates."""
+    existing = open_ticket_for(machine_id)
+    if existing:
+        return {"success": True, "ticket": existing, "existing": True}
     vendors = get_vendors()
     machine_type = MACHINE_TYPES.get(machine_id, "")
     eligible = [v for v in vendors if v.get("vendor_id")]
@@ -67,7 +75,7 @@ def tool_contact_vendor(machine_id: str, fault_summary: str, urgency: str, prefe
         "created_at":           datetime.now().isoformat(),
     }
     _vendor_tickets.append(record)
-    return {"success": True, "ticket": record}
+    return {"success": True, "ticket": record, "existing": False}
 
 def tool_reschedule(appointment_id: str, new_slot: str, reason: str = "Scheduled maintenance overlap") -> Dict:
     """reschedule_appointment tool."""
@@ -134,7 +142,10 @@ def run_agent(machine_id: str) -> Dict:
         )
         ticket_id = vendor_result["ticket"]["ticket_id"]
         vendor_name = vendor_result["ticket"]["vendor_name"]
-        actions.append(f"[{ts()}] Service ticket {ticket_id} created with {vendor_name}")
+        if vendor_result["existing"]:
+            actions.append(f"[{ts()}] Service ticket {ticket_id} with {vendor_name} is already open")
+        else:
+            actions.append(f"[{ts()}] Service ticket {ticket_id} created with {vendor_name}")
         for appt in affected[:3]:
             existing_slot = appt.get("new_appointment_slot")
             if existing_slot:
