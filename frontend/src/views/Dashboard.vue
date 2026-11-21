@@ -29,6 +29,10 @@
       </div>
     </div>
 
+    <div v-if="error" role="alert" style="margin-bottom:20px; padding:14px 20px; background:#fff1f0; border:1px solid #ffccc7; border-radius:var(--radius-md); font-size:13px; color:#a8071a; font-weight:600;">
+      {{ error }}
+    </div>
+
     <div v-if="loading && !machines.length" style="display:flex; flex-direction:column; align-items:center; justify-content:center; height:300px; gap:14px;">
       <div class="spinner" style="width:28px; height:28px; border-width:2.5px;"></div>
       <p style="font-size:13px; color:var(--gray-400); font-weight:500;">Loading telemetry data…</p>
@@ -113,6 +117,11 @@ const loading     = ref(true)
 const running     = ref(false)
 const agentResult = ref(null)
 const time        = ref('')
+const error       = ref('')
+
+const describe = e =>
+  e.response ? `API error ${e.response.status}: ${e.response.data?.detail || e.message}`
+             : 'Cannot reach the MediWatch API. Is the backend running on port 8000?'
 
 const criticals = computed(() => machines.value.filter(m => m.risk.risk_tier >= 3))
 let tid
@@ -123,12 +132,14 @@ const tick = () => {
 }
 const refresh = async () => {
   loading.value = true
-  try { const { data } = await dashboard(); machines.value = data.machines } catch (e) { console.error(e) }
+  error.value = ''
+  try { const { data } = await dashboard(); machines.value = data.machines } catch (e) { error.value = describe(e) }
   loading.value = false
 }
 const runAll = async () => {
   running.value = true
-  try { const { data } = await agentRunAll(); agentResult.value = data } catch (e) { console.error(e) }
+  error.value = ''
+  try { const { data } = await agentRunAll(); agentResult.value = data } catch (e) { error.value = describe(e) }
   running.value = false
 }
 const onRun = res => { agentResult.value = { results: { [res.machine_id]: res } } }
