@@ -126,7 +126,11 @@ def run_agent(machine_id: str) -> Dict:
 
     if tier >= 2:  
         schedule = get_scan_schedule(machine_id)
-        affected = [s for s in schedule if not s.get("rescheduled")]
+        already_moved = {r["appointment_id"] for r in _reschedule_log}
+        affected = [
+            s for s in schedule
+            if not s.get("rescheduled") and s.get("appointment_id") not in already_moved
+        ]
         actions.append(f"[{ts()}] Retrieved {len(schedule)} appointments, {len(affected)} potentially affected")
         urgency = "CRITICAL" if tier >= 3 else "HIGH"
         days = risk.get("days_to_failure", "unknown")
