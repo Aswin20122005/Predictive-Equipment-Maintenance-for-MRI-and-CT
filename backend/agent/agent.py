@@ -126,10 +126,13 @@ def tool_notify_team(machine_id: str, risk: Dict, recommended_action: str) -> Di
     return {"success": True, "notification": record}
 
 
+def ts() -> str:
+    return datetime.now().strftime("%H:%M:%S")
+
+
 def run_agent(machine_id: str) -> Dict:
     """Full agent pipeline for one machine."""
     actions: List[str] = []
-    ts = lambda: datetime.now().strftime("%H:%M:%S")
 
     risk = tool_classify_risk(machine_id)
     tier = risk.get("risk_tier", 0)

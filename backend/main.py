@@ -6,23 +6,6 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse, JSONResponse
 from datetime import datetime
 
-
-def sanitize(obj):
-    if isinstance(obj, float):
-        if math.isnan(obj) or math.isinf(obj):
-            return None
-        return obj
-    if isinstance(obj, dict):
-        return {k: sanitize(v) for k, v in obj.items()}
-    if isinstance(obj, list):
-        return [sanitize(v) for v in obj]
-    return obj
-
-
-def ok(data) -> JSONResponse:
-    return JSONResponse(content=sanitize(data))
-
-
 from backend.data.data_loader import (
     get_telemetry,
     get_vendors,
@@ -40,6 +23,23 @@ from backend.agent.agent import (
     reset_agent_state,
     tool_classify_risk,
 )
+
+
+def sanitize(obj):
+    if isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+        return obj
+    if isinstance(obj, dict):
+        return {k: sanitize(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [sanitize(v) for v in obj]
+    return obj
+
+
+def ok(data) -> JSONResponse:
+    return JSONResponse(content=sanitize(data))
+
 
 app = FastAPI(
     title="MediWatch — Predictive Equipment Maintenance API",
