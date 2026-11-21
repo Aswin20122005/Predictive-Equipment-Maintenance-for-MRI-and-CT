@@ -1,7 +1,5 @@
 from datetime import datetime, timedelta
 from typing import Dict, List, Any
-import sys, os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from backend.data.data_loader import (
     get_telemetry, get_vendors, get_scan_schedule, get_cost_impact, MACHINE_IDS, MACHINE_TYPES

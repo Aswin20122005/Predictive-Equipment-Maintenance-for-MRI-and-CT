@@ -7,9 +7,9 @@ ROOT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 echo ""
 echo "▶ Starting FastAPI backend on :8000 ..."
-cd "$ROOT_DIR/backend"
-pip install -r requirements.txt -q
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload &
+cd "$ROOT_DIR"
+pip install -r backend/requirements.txt -q
+uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload &
 BACKEND_PID=$!
 echo "  Backend PID: $BACKEND_PID"
 
